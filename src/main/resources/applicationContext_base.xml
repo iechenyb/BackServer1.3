@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" 
+	xmlns:websocket="http://www.springframework.org/schema/websocket"  
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	   		http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	   		http://www.springframework.org/schema/context
+	   		http://www.springframework.org/schema/context/spring-context-3.0.xsd
+			http://www.springframework.org/schema/mvc
+			http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd
+			http://www.springframework.org/schema/task
+			http://www.springframework.org/schema/task/spring-task-3.1.xsd
+			http://www.springframework.org/schema/aop
+			http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+			http://www.springframework.org/schema/websocket 
+			http://www.springframework.org/schema/websocket/spring-websocket.xsd
+			http://www.springframework.org/schema/tx 
+			http://www.springframework.org/schema/tx/spring-tx-2.5.xsd 
+			">
+ 
+	<!-- 激活spring的注解. -->
+	<context:annotation-config />
+	<!-- 扫描注解组件并且自动的注入spring beans中. 
+	例如,他会扫描@Controller 和@Service下的文件.所以确保此base-package设置正确. -->
+	<context:component-scan base-package="com.cyb" >
+	     <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	   <!--  <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service"/>	  -->
+	 </context:component-scan>
+	<!-- 配置注解驱动的Spring MVC Controller 的编程模型.注:次标签只在 Servlet MVC工作!--> 
+	<mvc:annotation-driven />
+	<task:annotation-driven /> 
+	<aop:aspectj-autoproxy proxy-target-class="true" /> 
+	<bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+	  <property name="location" value="classpath:App.properties" />
+	</bean>
+	 <!-- <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"  destroy-method="close">       
+	    <property name="driverClassName" value="${h2.driverClassName}" />      
+	    <property name="url" value="${h2.url}" /> 
+	    <property name="username" value="${h2.username}" />      
+	    <property name="password" value="${h2.password}" />      
+	</bean>  -->  
+	  <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close"> 
+	      <property name="driverClassName" value="${h2.driverClassName}" />      
+	      <property name="url" value="${h2.url}" />
+	      <property name="username" value="${h2.username}" />
+	      <property name="password" value="${h2.password}" />
+	      <property name="initialSize" value="1" />
+	      <property name="minIdle" value="1" /> 
+	      <property name="maxActive" value="20" />
+	      <property name="maxWait" value="6000000" />
+	      <property name="timeBetweenEvictionRunsMillis" value="60000" />
+	      <property name="minEvictableIdleTimeMillis" value="300000" />
+	      <property name="validationQuery" value="SELECT 'x'" />
+	      <property name="testWhileIdle" value="true" />
+	      <property name="testOnBorrow" value="false" />
+	      <property name="testOnReturn" value="false" />
+	      <property name="poolPreparedStatements" value="true" />
+	      <property name="maxPoolPreparedStatementPerConnectionSize" value="20" />
+	      <property name="filters" value="stat" />
+	      <!-- 超过时间限制是否回收 -->  
+		  <property name="removeAbandoned" value="true" />  
+		  <!-- 超时时间；单位为秒。600秒=10分钟 -->  
+		  <property name="removeAbandonedTimeout" value="600" />  
+		  <!-- 关闭abanded连接时输出错误日志 -->  
+		  <property name="logAbandoned" value="true" />    
+	</bean>  
+	<bean id="sessionFactory" 
+        class="org.springframework.orm.hibernate3.LocalSessionFactoryBean"> 
+        <property name="dataSource"> 
+            <ref bean="dataSource" /> 
+        </property> 
+        <property name="hibernateProperties"> 
+            <props> 
+                <prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop> 
+                <prop key="hibernate.show_sql">true</prop> 
+                <prop key="connection.autocommit">true</prop>
+            </props> 
+        </property> 
+       
+<!-- 使用 mappingDirectoryLocations 属性可以指定某目录下的 hbm 文件（“classpath*:”指向 WEB-INF/classes 目录） -->
+            <property name="mappingDirectoryLocations">
+            <list>
+                <value>
+                    /com/cyb/qutoes/bean/*.java       
+                </value>
+            </list>
+        </property>
+
+<!-- 补充：使用 mappingResources 属性要一个一个写 hbm 文件（“classpath*:”指向 WEB-INF/classes 目录） -->
+     <property name="mappingResources">
+         <list>
+            <value>/com/cyb/hbm/stock.hbm.xml</value> 
+        </list>
+    </property>
+  </bean>
+  
+ <!-- 配置事务管理器 -->
+<bean id="transactionManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+   <property name="sessionFactory">
+       <ref bean="sessionFactory"/>
+   </property>
+</bean>
+<!--  配置事务传播特性 -->
+<tx:advice id="txAdvice" transaction-manager="transactionManager">
+    <tx:attributes>
+       <tx:method name="add*" propagation="REQUIRED"/>
+      <tx:method name="save*" propagation="REQUIRED"/>
+      <tx:method name="del*" propagation="REQUIRED"/>
+      <tx:method name="update*" propagation="REQUIRED"/>
+      <tx:method name="add*" propagation="REQUIRED"/>
+      <tx:method name="find*" propagation="REQUIRED"/>
+      <tx:method name="get*" propagation="REQUIRED"/>
+      <tx:method name="apply*" propagation="REQUIRED"/>
+    </tx:attributes>
+</tx:advice>
+<!--  配置参与事务的类 -->
+<aop:config>
+<aop:pointcut id="allTestServiceMethod" expression="execution(* com.cyb.service.*.*(..))"/>
+<aop:advisor pointcut-ref="allTestServiceMethod" advice-ref="txAdvice" />
+</aop:config>
+<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+     <property name="dataSource">
+         <ref bean="dataSource" />
+     </property>
+</bean> 
+<!--  <bean id="wshandler" class="com.cyb.ws.SystemWebSocketHandler"/>  
+<websocket:handlers>  
+    <websocket:mapping path="/websocket" handler="wshandler"/>  
+    <websocket:handshake-interceptors>  
+    <bean class="com.cyb.ws.WebSocketHandshakeInterceptor"/>  
+    </websocket:handshake-interceptors>  
+</websocket:handlers> -->
+</beans>
